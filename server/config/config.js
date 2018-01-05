@@ -1,6 +1,6 @@
 var env = process.env.NODE_ENV || 'development';
 
-console.log("ENV IS********", env);
+
 if (env == 'development') {
     process.env.PORT = 3000;
     process.env.MONGODB_URI = 'mongodb://localhost:27017/TodoApp';
@@ -8,6 +8,7 @@ if (env == 'development') {
     process.env.PORT = 3000;
     process.env.MONGODB_URI = 'mongodb://localhost:27017/TodoAppTest';
 }
-else if (env == "production") {
+else {
+    console.log("I AM IN");
     process.env.MONGODB_URI = 'mongodb://sidd1004:tododb@ds239097.mlab.com:39097/todoapp';
 }
