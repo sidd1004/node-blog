@@ -17,6 +17,7 @@ describe('POST /todos', () => {
         request(app)
             .post('/todos')
             .send({ text })
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.text).toBe(text);
@@ -36,6 +37,7 @@ describe('POST /todos', () => {
     it('should not create todo with bad data', (done) => {
         request(app)
             .post('/todos')
+            .set('x-auth', users[0].tokens[0].token)
             .send()
             .expect(400)
             .end((err, res) => {
@@ -53,9 +55,10 @@ describe('GET /todos', () => {
     it('should get all todos', (done) => {
         request(app)
             .get('/todos')
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
-                expect(res.body.todos.length).toBe(2);
+                expect(res.body.todos.length).toBe(1);
             }).end(done);
     });
 });
@@ -64,21 +67,31 @@ describe('GET /todos/:id', () => {
     it('should return todo doc', (done) => {
         request(app)
             .get(`/todo/${todos[0]._id.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo.text).toBe(todos[0].text);
             }).end(done);
     });
-    it('should return todo not found', (done) => {
+    it('should return 404 todo not found', (done) => {
         var hexId = new ObjectID().toHexString();
         request(app)
             .get(`/todo/${hexId}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
     it('should return 404 for non-object id', (done) => {
         request(app)
             .get(`/todo/234`)
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(404)
+            .end(done);
+    });
+    it('should not return todo doc created by a different user', (done) => {
+        request(app)
+            .get(`/todo/${todos[1]._id.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -89,6 +102,7 @@ describe('DELETE /todo/:id', () => {
         var hexId = todos[1]._id.toHexString();
         request(app)
             .delete(`/todo/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo._id).toBe(hexId);
@@ -103,10 +117,28 @@ describe('DELETE /todo/:id', () => {
             });
     });
 
+    it('should not remove a todo of another user', (done) => {
+        var hexId = todos[1]._id.toHexString();
+        request(app)
+            .delete(`/todo/${hexId}`)
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(404)
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+                Todo.findById(hexId).then((todo) => {
+                    expect(todo).toExist();
+                    done();
+                }).catch((e) => done(e));
+            });
+    });
+
     it('should return 404 if todo not found', (done) => {
         var hexId = new ObjectID().toHexString();
         request(app)
             .delete(`/todo/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -114,6 +146,7 @@ describe('DELETE /todo/:id', () => {
     it('should return 404 if object id is invalid', (done) => {
         request(app)
             .delete(`/todo/123`)
+            .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -129,6 +162,7 @@ describe('PATCH /todo/:id', () => {
                 completed: true,
                 text
             })
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo.text).toBe(text);
@@ -136,6 +170,40 @@ describe('PATCH /todo/:id', () => {
                 expect(res.body.todo.completedAt).toBeA('number');
             })
             .end(done)
+    });
+
+    it('should not update the todo as different user', (done) => {
+        var text = "New todo";
+        var hexId = todos[0]._id.toHexString();
+        request(app)
+            .patch(`/todo/${hexId}`)
+            .send({
+                completed: true,
+                text
+            })
+            .set('x-auth', users[1].tokens[0].token)
+            .expect(404)
+            .end(done)
+    });
+
+    it('should clear completedAt when todo is not completed', (done) => {
+        var hexId = todos[0]._id.toHexString();
+        var text = 'This should be the new text!!';
+
+        request(app)
+            .patch(`/todo/${hexId}`)
+            .set('x-auth', users[0].tokens[0].token)
+            .send({
+                completed: false,
+                text
+            })
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.todo.text).toBe(text);
+                expect(res.body.todo.completed).toBe(false);
+                expect(res.body.todo.completedAt).toNotExist();
+            })
+            .end(done);
     });
 });
 
@@ -225,7 +293,7 @@ describe('/POST /users/login', () => {
                 if (!err)
                     return done(err);
                 User.findById(users[1]._id).then((user) => {
-                    expect(user.token[0]).toInclude({
+                    expect(user.token[1]).toInclude({
                         auth: 'true',
                         token: res.headers['x-auth']
                     });
@@ -249,7 +317,7 @@ describe('/POST /users/login', () => {
                 if (!err)
                     return done(err);
                 User.findById(users[1]._id).then((user) => {
-                    expect(user.tokens.length).toBe(0);
+                    expect(user.tokens.length).toBe(1);
                     done();
                 }).catch((e) => done(e));
             })
