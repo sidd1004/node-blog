@@ -6,7 +6,7 @@ const _ = require('lodash');
 const { ObjectID } = require('mongodb');
 
 const { mongoose } = require('./db/mongoose');
-const { Todo } = require('./models/todo');
+const { Blog } = require('./models/blog');
 const { User } = require('./models/user');
 const { authenticate } = require('./middleware/authenticate');
 
@@ -14,74 +14,74 @@ const app = express();
 
 app.use(bodyParser.json());
 
-app.post('/todos', authenticate, (req, res) => {
-    var todo = new Todo({
-        text: req.body.text,
+app.post('/blogs', authenticate, (req, res) => {
+    var blog = new Blog({
+        content: req.body.content,
         _creator: req.user._id
     });
-    todo.save().then((doc) => {
+    blog.save().then((doc) => {
         res.send(doc);
     }, (e) => {
         res.status(400).send(e);
     });
 });
 
-app.get('/todos', authenticate, (req, res) => {
-    Todo.find({ _creator: req.user._id }).then((todos) => {
-        res.send({ todos });
+app.get('/blogs', authenticate, (req, res) => {
+    Blog.find({ _creator: req.user._id }).then((blogs) => {
+        res.send({ blogs });
     }, (e) => {
         res.status(400).send(e);
     });
 });
 
-app.get('/todo/:id', authenticate, (req, res) => {
+app.get('/blog/:id', authenticate, (req, res) => {
     if (!ObjectID.isValid(req.params.id))
         res.status(404).send();
-    Todo.findOne(
+    Blog.findOne(
         {
             _id: req.params.id,
             _creator: req.user._id
-        }).then((todo) => {
-            if (!todo) {
+        }).then((blog) => {
+            if (!blog) {
                 res.status(404).send();
             }
-            res.send({ todo });
+            res.send({ blog });
         }).catch(() => res.status(400).send());
 });
 
-app.delete('/todo/:id', authenticate, (req, res) => {
+app.delete('/blog/:id', authenticate, (req, res) => {
     if (!ObjectID.isValid(req.params.id))
         return res.status(404).send();
-    Todo.findOneAndRemove({
+    Blog.findOneAndRemove({
         _id: req.params.id,
         _creator: req.user.id
-    }).then((todo) => {
-        if (!todo) {
+    }).then((blog) => {
+        if (!blog) {
             return res.status(404).send();
         }
-        res.send({ todo });
+        res.send({ blog });
     }).catch(() => res.status(400).send());
 });
 
-app.patch('/todo/:id', authenticate, (req, res) => {
+app.patch('/blog/:id', authenticate, (req, res) => {
     var id = req.params.id;
-    var body = _.pick(req.body, ['text', 'completed']);
+    var body = _.pick(req.body, ['content']);
     if (!ObjectID.isValid(req.params.id))
         return res.status(404).send();
 
-    if (_.isBoolean(body.completed) && body.completed) {
+    /* if (_.isBoolean(body.completed) && body.completed) {
         body.completedAt = new Date().getTime();
 
     }
     else {
         body.completed = false;
         body.completedAt = null;
-    }
-    Todo.findOneAndUpdate({ _id: id, _creator: req.user.id }, { $set: body }, { new: true }).then((todo) => {
-        if (!todo) {
+    } */
+    Blog.findOneAndUpdate({ _id: id, _creator: req.user.id }, { $set: body }, { new: true }).then((blog) => {
+        if (!blog) {
             return res.status(404).send();
         }
-        res.send({ todo });
+        res.send({ blog });
     }).catch((e) => res.status(400).send());
 });
 

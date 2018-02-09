@@ -3,141 +3,141 @@ const request = require('supertest');
 const { ObjectID } = require('mongodb');
 
 const { app } = require('../server');
-const { Todo } = require('../models/todo');
+const { Blog } = require('../models/blog');
 const { User } = require('../models/user');
 
-const { todos, populateTodos, users, populateUsers } = require('./seed/seed');
+const { blogs, populateBlogs, users, populateUsers } = require('./seed/seed');
 
 beforeEach(populateUsers);
-beforeEach(populateTodos);
+beforeEach(populateBlogs);
 
-describe('POST /todos', () => {
-    it('should create a new todo', (done) => {
-        var text = 'Test todo';
+describe('POST /blogs', () => {
+    it('should create a new blog', (done) => {
+        var content = 'Test blog';
         request(app)
-            .post('/todos')
-            .send({ text })
+            .post('/blogs')
+            .send({ content })
             .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
-                expect(res.body.text).toBe(text);
+                expect(res.body.content).toBe(content);
 
             })
             .end((err, res) => {
                 if (err)
                     return done(err);
-                Todo.find({ text }).then((todos) => {
-                    expect(todos.length).toBe(1);
-                    expect(todos[0].text).toBe(text);
+                Blog.find({ content }).then((blogs) => {
+                    expect(blogs.length).toBe(1);
+                    expect(blogs[0].content).toBe(content);
                     done();
                 }).catch((e) => done(e));
             })
     });
 
-    it('should not create todo with bad data', (done) => {
+    it('should not create blog with bad data', (done) => {
         request(app)
-            .post('/todos')
+            .post('/blogs')
             .set('x-auth', users[0].tokens[0].token)
             .send()
             .expect(400)
             .end((err, res) => {
                 if (err)
                     return done(err);
-                Todo.find().then((todos) => {
-                    expect(todos.length).toBe(2);
+                Blog.find().then((blogs) => {
+                    expect(blogs.length).toBe(2);
                     done();
                 }).catch((e) => done(e));
             })
     });
 });
 
-describe('GET /todos', () => {
-    it('should get all todos', (done) => {
+describe('GET /blogs', () => {
+    it('should get all blogs', (done) => {
         request(app)
-            .get('/todos')
+            .get('/blogs')
             .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
-                expect(res.body.todos.length).toBe(1);
+                expect(res.body.blogs.length).toBe(1);
             }).end(done);
     });
 });
 
-describe('GET /todos/:id', () => {
-    it('should return todo doc', (done) => {
+describe('GET /blog/:id', () => {
+    it('should return blog doc', (done) => {
         request(app)
-            .get(`/todo/${todos[0]._id.toHexString()}`)
+            .get(`/blog/${blogs[0]._id.toHexString()}`)
             .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
-                expect(res.body.todo.text).toBe(todos[0].text);
+                expect(res.body.blog.content).toBe(blogs[0].content);
             }).end(done);
     });
-    it('should return 404 todo not found', (done) => {
+    it('should return 404 blog not found', (done) => {
         var hexId = new ObjectID().toHexString();
         request(app)
-            .get(`/todo/${hexId}`)
+            .get(`/blog/${hexId}`)
             .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
     it('should return 404 for non-object id', (done) => {
         request(app)
-            .get(`/todo/234`)
+            .get(`/blog/234`)
             .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
-    it('should not return todo doc created by a different user', (done) => {
+    it('should not return blog post created by a different user', (done) => {
         request(app)
-            .get(`/todo/${todos[1]._id.toHexString()}`)
+            .get(`/blog/${blogs[1]._id.toHexString()}`)
             .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
 });
 
-describe('DELETE /todo/:id', () => {
-    it('should remove a todo', (done) => {
-        var hexId = todos[1]._id.toHexString();
+describe('DELETE /blog/:id', () => {
+    it('should remove a blog post', (done) => {
+        var hexId = blogs[1]._id.toHexString();
         request(app)
-            .delete(`/todo/${hexId}`)
+            .delete(`/blog/${hexId}`)
             .set('x-auth', users[1].tokens[0].token)
             .expect(200)
             .expect((res) => {
-                expect(res.body.todo._id).toBe(hexId);
+                expect(res.body.blog._id).toBe(hexId);
             }).end((err, res) => {
                 if (err) {
                     return done(err);
                 }
-                Todo.findById(hexId).then((todo) => {
-                    expect(todo).toBeFalsy();
+                Blog.findById(hexId).then((blog) => {
+                    expect(blog).toBeFalsy();
                     done();
                 }).catch((e) => done(e));
             });
     });
 
-    it('should not remove a todo of another user', (done) => {
-        var hexId = todos[1]._id.toHexString();
+    it('should not remove a blog of another user', (done) => {
+        var hexId = blogs[1]._id.toHexString();
         request(app)
-            .delete(`/todo/${hexId}`)
+            .delete(`/blog/${hexId}`)
             .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end((err, res) => {
                 if (err) {
                     return done(err);
                 }
-                Todo.findById(hexId).then((todo) => {
-                    expect(todo).toBeTruthy();
+                Blog.findById(hexId).then((blog) => {
+                    expect(blog).toBeTruthy();
                     done();
                 }).catch((e) => done(e));
             });
     });
 
-    it('should return 404 if todo not found', (done) => {
+    it('should return 404 if blog not found', (done) => {
         var hexId = new ObjectID().toHexString();
         request(app)
-            .delete(`/todo/${hexId}`)
+            .delete(`/blog/${hexId}`)
             .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
@@ -145,63 +145,56 @@ describe('DELETE /todo/:id', () => {
 
     it('should return 404 if object id is invalid', (done) => {
         request(app)
-            .delete(`/todo/123`)
+            .delete(`/blog/123`)
             .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
     });
 });
 
-describe('PATCH /todo/:id', () => {
-    it('should update the todo', (done) => {
-        var text = "New todo";
-        var hexId = todos[0]._id.toHexString();
+describe('PATCH /blog/:id', () => {
+    it('should update the blog', (done) => {
+        var content = "New blog";
+        var hexId = blogs[0]._id.toHexString();
         request(app)
-            .patch(`/todo/${hexId}`)
+            .patch(`/blog/${hexId}`)
             .send({
-                completed: true,
-                text
+                content
             })
             .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
-                expect(res.body.todo.text).toBe(text);
-                expect(res.body.todo.completed).toBe(true);
-                expect(typeof res.body.todo.completedAt).toBe('number');
+                expect(res.body.blog.content).toBe(content);
             })
             .end(done)
     });
 
-    it('should not update the todo as different user', (done) => {
-        var text = "New todo";
-        var hexId = todos[0]._id.toHexString();
+    it('should not update the blog as different user', (done) => {
+        var content = "New blog";
+        var hexId = blogs[0]._id.toHexString();
         request(app)
-            .patch(`/todo/${hexId}`)
+            .patch(`/blog/${hexId}`)
             .send({
-                completed: true,
-                text
+                content
             })
             .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done)
     });
 
-    it('should clear completedAt when todo is not completed', (done) => {
-        var hexId = todos[0]._id.toHexString();
-        var text = 'This should be the new text!!';
+    it('should clear completedAt when blog is not completed', (done) => {
+        var hexId = blogs[0]._id.toHexString();
+        var content = 'This should be the new text!!';
 
         request(app)
-            .patch(`/todo/${hexId}`)
+            .patch(`/blog/${hexId}`)
             .set('x-auth', users[0].tokens[0].token)
             .send({
-                completed: false,
-                text
+                content
             })
             .expect(200)
             .expect((res) => {
-                expect(res.body.todo.text).toBe(text);
-                expect(res.body.todo.completed).toBe(false);
-                expect(res.body.todo.completedAt).toBeFalsy();
+                expect(res.body.blog.content).toBe(content);
             })
             .end(done);
     });

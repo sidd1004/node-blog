@@ -2,7 +2,7 @@ const { ObjectID } = require('mongodb');
 
 const jwt = require('jsonwebtoken');
 
-const { Todo } = require('../../models/todo');
+const { Blog } = require('../../models/blog');
 const { User } = require('../../models/user');
 
 const userOneId = new ObjectID();
@@ -25,21 +25,19 @@ const users = [{
     }]
 }];
 
-const todos = [{
+const blogs = [{
     _id: new ObjectID(),
-    text: "First todo",
+    content: "First blog",
     _creator: userOneId
 }, {
     _id: new ObjectID(),
-    text: "Second todo",
-    completed: true,
-    completedAt: 333,
+    content: "Second blog",
     _creator: userSecondId
 }];
 
-const populateTodos = (done) => {
-    Todo.remove({}).then(() => {
-        return Todo.insertMany(todos);
+const populateBlogs = (done) => {
+    Blog.remove({}).then(() => {
+        return Blog.insertMany(blogs);
     }).then(() => done());
 };
 
@@ -50,4 +48,4 @@ const populateUsers = (done) => {
         return Promise.all([userOne, userTwo]);
     }).then(() => done());
 }
-module.exports = { todos, populateTodos, users, populateUsers };
+module.exports = { blogs, populateBlogs, users, populateUsers };

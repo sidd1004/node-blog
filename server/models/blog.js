@@ -1,19 +1,11 @@
 var { mongoose } = require('../db/mongoose');
 
-var Todo = mongoose.model('Todo', {
-    text: {
+var Blog = mongoose.model('Blog', {
+    content: {
         type: String,
         required: true,
         minlength: 1,
         trim: true
-    },
-    completed: {
-        type: Boolean,
-        default: false
-    },
-    completedAt: {
-        type: Number,
-        default: null
     },
     _creator: {
         require: true,
@@ -21,4 +13,4 @@ var Todo = mongoose.model('Todo', {
     }
 });
 
-module.exports = { Todo }
+module.exports = { Blog }
